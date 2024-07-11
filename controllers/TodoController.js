@@ -7,7 +7,11 @@ export const createTodo = async (req, res) => {
         const result = await todoServices.createTodo({ newTodo });
         res.status(200).json(result);
       } catch (error) {
-        res.status(500).json({ message: "Error creating todo" });
+        if (error.message === "Task already exists") {
+          res.status(409).json({ message: "Task already exists" }); // 409 Conflict
+        } else {
+          res.status(500).json({ message: "Error creating todo" });
+        }
       }
     
 };

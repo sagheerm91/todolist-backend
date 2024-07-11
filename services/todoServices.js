@@ -5,7 +5,7 @@ class TodoService {
     const { task } = newTodo;
     const taskExist = await TodoTask.findOne({ task });
     if (taskExist) {
-      return { message: "Task already exists" };
+      throw new Error("Task already exists");
     }
     const saveTask = await newTodo.save();
     return { message: "Task has been added successfully", todo: saveTask };

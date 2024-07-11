@@ -2,7 +2,7 @@ import express from "express";
 import dotenv from "dotenv";
 import bodyParser from "body-parser";
 import { connectDatabase } from "./config/connectDB.js";
-import route from "./routes/TodoRoutes.js"
+import indexRoutes from "./routes/indexRoutes.js"
 import cors from "cors";
 const app = express();
 
@@ -19,5 +19,6 @@ app.listen(PORT, () => {
     console.log(`Server listening at: ${PORT}`);
 });
 
-app.use("/todos", route);
+app.use("/api", indexRoutes);
+
 
