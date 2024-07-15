@@ -14,25 +14,31 @@ class UserService {
       message: "User created successfully",
       data: { email: createdUser.email },
       token: await createdUser.generateToken(),
+      user:createdUser
     };
   };
+
 
   // Login
   async login({username, password}){
     const userExist = await User.findOne({username});
+    
     if(!userExist){
         return {error: "User does not exist"};
     }
     
-    const user = await userExist.comparePassword({password});
+    const isCompared = await userExist.comparePassword({password});
 
-    if(user){
+    if(isCompared){
+      const token = await userExist.generateToken();
         return {
             message: "Login successful",
-            token: await userExist.generateToken(),
+            token: token,
+            userInfo: userExist
           };
     } 
   };
+  
 }
 
 export default new UserService();

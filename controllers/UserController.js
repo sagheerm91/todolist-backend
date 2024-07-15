@@ -1,5 +1,6 @@
 import UserService from "../services/UserService.js";
 import User from "../models/UserModel.js";
+import jwt from "jsonwebtoken";
 
 export const register = async (req, res) => {
     try {
@@ -17,6 +18,7 @@ export const register = async (req, res) => {
   export const login = async (req, res) => {
     try {
         const {username, password} = req.body;
+       
         const result = await UserService.login({username, password});
         if(result.error){
             return res.status(404).json({message: result.error});

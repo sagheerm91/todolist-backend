@@ -15,7 +15,15 @@ const userSchema = mongoose.Schema({
     type: String,
     require: true,
   },
+  name:{
+    type: String,
+    require: true,
+  },
   password: {
+    type: String,
+    require: true,
+  },
+  image: {
     type: String,
     require: true,
   },
@@ -50,7 +58,7 @@ userSchema.methods.comparePassword = async function({password}) {
 // for generating token
 userSchema.methods.generateToken = async function () {
   try {
-    return jwt.sign(
+    const token = jwt.sign(
       {
         userId: this._id.toString(),
         email: this.email,
@@ -60,9 +68,16 @@ userSchema.methods.generateToken = async function () {
         expiresIn: "1h"
       }
     );
+    return token;
+    
   } catch (error) {
     console.error(error);
   }
 };
+
+userSchema.methods.storeUserInfo = async function(token){
+  const userInfo = jwt.verify(token, process.env.JWT_SECRET);
+  return userInfo;
+}
 
 export default mongoose.model("User", userSchema);

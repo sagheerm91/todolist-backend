@@ -3,9 +3,12 @@ import todoServices from "../services/todoServices.js";
 
 export const createTodo = async (req, res) => {
     try {
+      
         const newTodo = new TodoTask(req.body);
         const result = await todoServices.createTodo({ newTodo });
         res.status(200).json(result);
+      
+        
       } catch (error) {
         if (error.message === "Task already exists") {
           res.status(409).json({ message: "Task already exists" }); // 409 Conflict
