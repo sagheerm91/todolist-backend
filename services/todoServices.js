@@ -11,15 +11,16 @@ class TodoService {
     return { message: "Task has been added successfully", todo: saveTask };
   }
 
-  async getAllTodos() {
+  async getAllTodos({page, limit}) {
     try {
-      const todos = await TodoTask.find();
-      if (todos.length === 0) {
-        return { data: null, message: "No todos found" };
-      }
-      return { data: todos };
+      const options = {
+        page: page || 1,
+        limit: limit || 3,
+      };
+      const todos = await TodoTask.paginate({}, options);
+      return { data: todos.docs, total: todos.totalDocs, totalPages: todos.totalPages, currentPage: todos.page };
     } catch (error) {
-      return { error };
+      return { error: error.message };
     }
   }
 

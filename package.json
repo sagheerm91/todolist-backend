@@ -5,7 +5,10 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon index.js"
+    "start": "env-cmd -f config/.env.development nodemon index.js",
+    "prod": "env-cmd -f config/.env.production nodemon index.js",
+    "dev": "env-cmd -f config/.env.development nodemon index.js",
+    "staging": "env-cmd -f config/.env.staging nodemon index.js"
   },
   "author": "sagheer",
   "license": "ISC",
@@ -15,9 +18,12 @@
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
+    "env-cmd": "^10.1.0",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.4.4",
+    "mongoose-paginate-v2": "^1.8.3",
+    "multer": "^1.4.5-lts.1",
     "nodemon": "^3.1.4"
   }
 }

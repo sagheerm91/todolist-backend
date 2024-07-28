@@ -19,7 +19,7 @@ const userMiddleware = async(req, res, next) => {
         req.user = isVerified;
         const user = await UserModel.findOne({email: isVerified.email});
         //localStorage.setItem("user", isVerified);
-        console.log("Is VERIFIED USER", user);
+        //console.log("Is VERIFIED USER", user);
         next();
         
         }

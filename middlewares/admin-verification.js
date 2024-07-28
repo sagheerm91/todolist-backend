@@ -3,9 +3,13 @@ const adminMiddleware = async(req, res, next) => {
 
     try {
         const isAdmin = req.user.isAdmin;
+        const isUser = req.user;
         if(isAdmin){
             next();
+        } else if(isUser){
+            next();
         }
+        
         else{
             return res.status(403).json({message: "You are not authorized for this operation"});
 

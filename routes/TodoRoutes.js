@@ -7,7 +7,7 @@ const route = express.Router();
 
 //Todo CRUD Routes
 route.post("/create-todo", userMiddleware, adminMiddleware, createTodo);
-route.get("/get-todos", userMiddleware, getTodos);
+route.get("/get-todos", userMiddleware, adminMiddleware, getTodos);
 route.put("/update-todo/:id", userMiddleware, adminMiddleware, updateTodo);
 route.delete("/delete-todo/:id", userMiddleware, adminMiddleware, deleteTodo);
 //route.get("/update-single-todo/:id", getSingleTodo);
