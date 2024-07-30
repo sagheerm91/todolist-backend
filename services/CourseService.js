@@ -4,8 +4,15 @@ import Order from "../models/OrderModel.js";
 import fs from "fs";
 import path from "path";
 import { create } from "domain";
+import Stripe from "stripe";
+import Payment from "../models/PaymentModel.js";
+
+const stripeKey = process.env.STRIPE_SK;
+const stripe = Stripe(`${stripeKey}`); 
+
 
 class CourseService {
+  
   async getAllCourses({ page, limit, search }) {
     try {
       const query = {};
@@ -88,14 +95,17 @@ class CourseService {
   }
 
   async addCourse({
-    createdBy,
     title,
     description,
     originalPrice,
     discountedPrice,
     image,
+    createdBy
   }) {
     const courseExist = await Course.findOne({ title });
+    console.log('====================================');
+    console.log("Data --- ", {title,description,originalPrice,discountedPrice, createdBy});
+    console.log('====================================');
     if (courseExist) {
       return { error: "Course with the same name already exists" };
     }
@@ -184,6 +194,70 @@ class CourseService {
       };
     } catch (error) {
       return error;
+    }
+  }
+
+  async makePayment({totalPrice, name, user, ids}){
+    try {
+     
+      console.log('====================================');
+     console.log("IDs --- ", ids);
+     console.log('====================================');
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ["card"],
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: {
+              name: name, 
+            },
+            unit_amount: totalPrice * 100,
+          },
+          quantity: 1,
+        },
+      ],
+      mode: "payment",
+      success_url: `http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://localhost:3000/cancel`,
+    });
+
+    const userId = user; // Extract as needed
+      const courseIds = ids;
+      const price = totalPrice; 
+      const paymentId = session.id;
+
+    const payment = new Payment({
+      userId,
+      courseIds,
+      price,
+      paymentId,
+    });
+
+    await payment.save();
+  // console.log('====================================');
+  // console.log("Session Id --- ", session.id);
+  // console.log('====================================');
+
+    return ({ id: session.id });
+    } catch (error) {
+      throw new Error("Error fetching courses");
+    }
+  }
+
+  async savePayment({sessionId,}){
+    try {
+      
+      // Retrieve session details
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const paymentIntent = await stripe.paymentIntents.retrieve(session.payment_intent);
+  
+      
+      return ({ success: true, message: 'Payment details saved' });
+    } catch (error) {
+      console.error('Error saving payment details:', error);
+      return ({ success: false, message: 'Error saving payment details' });
     }
   }
 

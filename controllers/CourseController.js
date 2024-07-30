@@ -1,10 +1,11 @@
+import Stripe from "stripe";
 import upload from "../config/multerConfig.js";
 import CourseService from "../services/CourseService.js";
 
 export const getCourses = async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 3;
-  const search = req.query.search || '';
+  const search = req.query.search || "";
   const result = await CourseService.getAllCourses({ page, limit, search });
   if (result.error) {
     return res.status(500).json(result);
@@ -16,16 +17,20 @@ export const getCourses = async (req, res) => {
 };
 
 export const getCoursesByUser = async (req, res) => {
-
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 3;
-  const search = req.query.search || '';
+  const search = req.query.search || "";
 
   const id = req.params.id;
   // console.log("====================================");
   // console.log("ADMIN USER ID --- ", id);
   // console.log("====================================");
-  const result = await CourseService.getCoursesByUser({ id, page, limit,search });
+  const result = await CourseService.getCoursesByUser({
+    id,
+    page,
+    limit,
+    search,
+  });
   if (result.error) {
     return res.status(500).json(result);
   } else {
@@ -58,9 +63,9 @@ export const addCourse = async (req, res) => {
     try {
       const image = req.file ? `/uploads/${req.file.filename}` : undefined;
       const result = await CourseService.addCourse({
-        createdBy,
         ...req.body,
         image,
+        createdBy,
       });
 
       if (result.error) {
@@ -111,7 +116,7 @@ export const purchase = async (req, res) => {
   // console.log("Id --- ", userId);
   // console.log("====================================");
 
-  const result = await CourseService.purchase({createdBy, courseId});
+  const result = await CourseService.purchase({ createdBy, courseId });
   if (result) {
     return res.status(200).json({ data: result });
   } else {
@@ -135,10 +140,34 @@ export const getOrderByUser = async (req, res) => {
   // console.log("====================================");
   // console.log("USER ID --- ", id);
   // console.log("====================================");
-  const result = await CourseService.getOrderByUser({ id});
+  const result = await CourseService.getOrderByUser({ id });
   if (result.error) {
     return res.status(500).json(result);
   } else {
     return res.status(200).json({ data: result });
+  }
+};
+
+export const makePayment = async (req, res) => {
+  const user = req.header("UserId");
+  const { totalPrice } = req.body;
+  const { name } = req.body;
+  const {ids} = req.body;
+  const result = await CourseService.makePayment({ totalPrice, name, user, ids});
+  if (result.error) {
+    return res.status(404).json(result);
+  } else {
+    return res.status(200).json(result);
+  }
+};
+
+export const savePayment = async (req, res) => {
+  const { sessionId } = req.body;
+  
+  const result = await CourseService.savePayment({sessionId});
+  if (result.error) {
+    return res.status(404).json(result);
+  } else {
+    return res.status(200).json(result);
   }
 };
