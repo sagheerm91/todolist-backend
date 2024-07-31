@@ -12,6 +12,14 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
+app.use(
+  bodyParser.json({
+      verify: function(req, res, buf) {
+          req.rawBody = buf;
+      }
+  })
+);
+
 app.use(bodyParser.json());
 app.use(cors());
 

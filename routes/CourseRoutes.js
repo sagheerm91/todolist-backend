@@ -1,4 +1,5 @@
 import express from "express";
+import bodyParser from "body-parser";
 import {
   addCourse,
   getCourses,
@@ -6,10 +7,12 @@ import {
   updateCourse,
   getSingleCourse,
   getCoursesByUser,
-  purchase,
+  // purchase,
   getOrderByUser,
+  stripeWebhook,
   makePayment,
-  savePayment
+  savePayment, 
+  cancelPayment
 } from "../controllers/CourseController.js";
 
 import adminMiddleware from "../middlewares/admin-verification.js";
@@ -55,7 +58,7 @@ route.get(
   adminMiddleware,
   getCoursesByUser
 );
-route.post("/purchase", purchase);
+//route.post("/purchase", purchase);
 route.get(
   "/get-orders-by-user/:id",
   userMiddleware,
@@ -63,6 +66,9 @@ route.get(
   getOrderByUser
 );
 
+
 route.post("/create-checkout-session", makePayment);
-route.post("/save-payment-details", savePayment)
+route.post("/save-payment-details", savePayment);
+route.post("/canel-payment", cancelPayment);
+route.post("/webhook", stripeWebhook);
 export default route;

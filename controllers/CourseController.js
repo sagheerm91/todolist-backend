@@ -107,22 +107,22 @@ export const updateCourse = (req, res) => {
   });
 };
 
-export const purchase = async (req, res) => {
-  const createdBy = req.query.userId;
-  const courseId = req.query.courseId;
+// export const purchase = async (req, res) => {
+//   const createdBy = req.query.userId;
+//   const courseId = req.query.courseId;
 
-  // console.log("====================================");
-  //  console.log("Course --- ", courseId);
-  // console.log("Id --- ", userId);
-  // console.log("====================================");
+//   // console.log("====================================");
+//   //  console.log("Course --- ", courseId);
+//   // console.log("Id --- ", userId);
+//   // console.log("====================================");
 
-  const result = await CourseService.purchase({ createdBy, courseId });
-  if (result) {
-    return res.status(200).json({ data: result });
-  } else {
-    return res.status(404).json({ message: "Error purchasing the course" });
-  }
-};
+//   const result = await CourseService.purchase({ createdBy, courseId });
+//   if (result) {
+//     return res.status(200).json({ data: result });
+//   } else {
+//     return res.status(404).json({ message: "Error purchasing the course" });
+//   }
+// };
 
 export const deleteCourse = async (req, res) => {
   const result = await CourseService.deleteCourse({
@@ -150,10 +150,13 @@ export const getOrderByUser = async (req, res) => {
 
 export const makePayment = async (req, res) => {
   const user = req.header("UserId");
-  const { totalPrice } = req.body;
-  const { name } = req.body;
-  const {ids} = req.body;
-  const result = await CourseService.makePayment({ totalPrice, name, user, ids});
+  
+  const result = await CourseService.makePayment({user, ...req.body});
+
+  // console.log('====================================');
+  // console.log("Req Body --- ", req.body);
+  // console.log('====================================');
+  
   if (result.error) {
     return res.status(404).json(result);
   } else {
@@ -161,13 +164,37 @@ export const makePayment = async (req, res) => {
   }
 };
 
-export const savePayment = async (req, res) => {
-  const { sessionId } = req.body;
+export const cancelPayment = async (req, res) => {
+  const {orderId} = req.body;
   
-  const result = await CourseService.savePayment({sessionId});
+  const result = await CourseService.handleCancelPament({orderId});
   if (result.error) {
     return res.status(404).json(result);
   } else {
     return res.status(200).json(result);
   }
+}
+
+export const savePayment = async (req, res) => {
+  const { sessionId } = req.body;
+  const {orderId} = req.body;
+  
+  const result = await CourseService.savePayment({sessionId, orderId});
+  if (result.error) {
+    return res.status(404).json(result);
+  } else {
+    return res.status(200).json(result);
+  }
+};
+
+export const stripeWebhook = async (req, res) => {
+  const sig = req.headers['stripe-signature'];
+  const body = req.rawBody;
+  const meta=req.data;
+  console.log(",eta----",meta);
+    const result = await CourseService.stripeWebhook({body, sig});
+    if(result.error){
+      return res.status(404).json(result);
+    }
+    return res.status(200).json(result);
 };
