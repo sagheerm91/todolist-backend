@@ -29,6 +29,6 @@ const orderSchema = mongoose.Schema({
     }
 });
 
-//orderSchema.plugin(mongoosePaginate);
+orderSchema.plugin(mongoosePaginate);
 
 export default mongoose.model("order", orderSchema);

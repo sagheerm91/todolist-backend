@@ -135,6 +135,18 @@ export const deleteCourse = async (req, res) => {
   }
 };
 
+export const getAllOrders = async(req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 3;
+  const search = req.query.search || "";
+  const result = await CourseService.getAllOrders({page, limit, search});
+  if (result.error) {
+    return res.status(500).json(result);
+  } else {
+    return res.status(200).json({ data: result });
+  }
+}
+
 export const getOrderByUser = async (req, res) => {
   const id = req.params.id;
   // console.log("====================================");
@@ -173,7 +185,7 @@ export const cancelPayment = async (req, res) => {
   } else {
     return res.status(200).json(result);
   }
-}
+};
 
 export const savePayment = async (req, res) => {
   const { sessionId } = req.body;
@@ -190,8 +202,7 @@ export const savePayment = async (req, res) => {
 export const stripeWebhook = async (req, res) => {
   const sig = req.headers['stripe-signature'];
   const body = req.rawBody;
-  const meta=req.data;
-  console.log(",eta----",meta);
+  
     const result = await CourseService.stripeWebhook({body, sig});
     if(result.error){
       return res.status(404).json(result);

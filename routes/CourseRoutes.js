@@ -10,6 +10,7 @@ import {
   // purchase,
   getOrderByUser,
   stripeWebhook,
+  getAllOrders,
   makePayment,
   savePayment, 
   cancelPayment
@@ -65,8 +66,7 @@ route.get(
   adminMiddleware,
   getOrderByUser
 );
-
-
+route.get("/get-all-orders", getAllOrders);
 route.post("/create-checkout-session", makePayment);
 route.post("/save-payment-details", savePayment);
 route.post("/canel-payment", cancelPayment);

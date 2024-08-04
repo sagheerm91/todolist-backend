@@ -10,8 +10,6 @@ const stripeKey = process.env.STRIPE_SK;
 const stripe = Stripe(`${stripeKey}`);
 const webhookKey = process.env.STRIPE_WEBHOOK_SK;
 
-
-
 class CourseService {
   async getAllCourses({ page, limit, search }) {
     try {
@@ -82,7 +80,10 @@ class CourseService {
 
   async getOrderByUser({ id }) {
     try {
-      const orders = await Order.find({ createdBy: id });
+      const orders = await Order.find({
+        createdBy: id,
+        orderStatus: OrderStatus.COMPLETED,
+      });
       if (!orders) {
         return { data: null, message: "No orders found" };
       }
@@ -234,7 +235,7 @@ class CourseService {
       await order.save();
 
       const orderId = order._id;
-      
+
       // console.log('====================================');
       // console.log("O ID --- ", orderId);
       // console.log('====================================');
@@ -256,22 +257,37 @@ class CourseService {
         ],
         mode: "payment",
         metadata: {
-          orderId: orderId.toString(),
+          orderId: order._id.toString(),
+        },
+        payment_intent_data: {
+          metadata: {
+            orderId: order._id.toString(),
+          },
         },
         success_url: `http://localhost:3000/success?session_id={CHECKOUT_SESSION_ID}&order_id=${order._id}`,
         cancel_url: `http://localhost:3000/declined?order_id=${order._id}`,
+        expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
       });
 
+      setTimeout(async () => {
+        const expiredOrder = await Order.findById(orderId);
+        if (expiredOrder && expiredOrder.orderStatus === OrderStatus.PENDING) {
+          await Order.findByIdAndUpdate(orderId, {
+            orderStatus: OrderStatus.FAILED,
+          });
+        }
+      }, 30 * 60 * 1000);
+
       // console.log('====================================');
-      // console.log("Sesssion --- ", session);
+      console.log("Sesssion --- ", session);
       // console.log('====================================');
       return { id: session.id };
     } catch (error) {
-      throw new Error("Error creating payment session");
+      throw new Error(error);
     }
   }
 
-  async savePayment({ sessionId, orderId  }) {
+  async savePayment({ sessionId, orderId }) {
     try {
       // Retrieve session details
       // const session = await stripe.checkout.sessions.retrieve(sessionId);
@@ -331,12 +347,30 @@ class CourseService {
     }
   }
 
+  async getAllOrders({ page, limit, search }) {
+    try {
+      const query = {};
+
+      if (search) {
+        query.$or = [{ title: { $regex: search, $options: "i" } }];
+      }
+
+      const options = {
+        page: page || 1,
+        limit: limit || 3,
+      };
+      const orders = await Order.paginate(query, options);
+      if (!orders) {
+        return { data: null, message: "No orders found" };
+      }
+      return { orders };
+    } catch (error) {
+      return { error };
+    }
+  }
+
   async handleCancelPayment({ orderId }) {
     try {
-      // const session = await stripe.checkout.sessions.retrieve(sessionId);
-      // const paymentIntent = await stripe.paymentIntents.retrieve(
-      //   session.payment_intent
-      // );
       const order = await Order.findByIdAndUpdate(
         { _id: orderId },
         { orderStatus: OrderStatus.FAILED },
@@ -356,6 +390,7 @@ class CourseService {
 
   async stripeWebhook({ body, sig }) {
     let event;
+    let orderId;
     try {
       event = stripe.webhooks.constructEvent(body, sig, `${webhookKey}`);
     } catch (err) {
@@ -363,33 +398,39 @@ class CourseService {
       return { error: "Webhook signature verification failed" };
     }
     const session = event.data.object;
-    // console.log('====================================');
-    // console.log("Session Object --- ", session);
-    // console.log('====================================');
-    // Handle the event
-    const orderId = session.metadata;
-    // console.log("orderId----",orderId);
-    // console.log('====================================');
-    // console.log("Event Type --- ", event.type);
-    // console.log('====================================');
-    // console.log("event.type---------",session);
-  switch (event.type) {
-    case "checkout.session.completed":
-      await this.savePayment({
-        sessionId: session.id,
-        orderId: orderId,
-      });
-      break;
 
-    case "payment_intent.payment_failed":
-      await this.handleCancelPayment({
-        orderId: orderId,
-      });
-      break;
+    orderId = event.data.object.metadata.orderId;
 
-    default:
-      console.log(`Unhandled event type ${event.type}`);
-  }
+    switch (event.type) {
+      case "checkout.session.completed":
+        await this.savePayment({
+          sessionId: session.id,
+          orderId: orderId,
+        });
+        break;
+
+      case "payment_intent.payment_failed":
+        console.log("Id from switch --- ", orderId);
+        await this.handleCancelPayment({
+          orderId: orderId,
+        });
+        break;
+
+      case "checkout.session.expired":
+        await this.handleCancelPayment({
+          orderId: orderId,
+        });
+        break;
+
+      case "payment_intent.canceled":
+        await this.handleCancelPayment({
+          orderId: orderId,
+        });
+        break;
+
+      default:
+        console.log(`Unhandled event type ${event.type}`);
+    }
 
     // Return a response to acknowledge receipt of the event
     return { received: true };
