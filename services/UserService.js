@@ -1,4 +1,5 @@
 import User from "../models/UserModel.js";
+import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 
 class UserService {
@@ -17,17 +18,19 @@ class UserService {
       name,
       image,
     });
+    const userInfo = createdUser.toObject();
+      delete userInfo.password;
     return {
       message: "User created successfully",
       data: { email: createdUser.email },
       token: await createdUser.generateToken(),
-      user: createdUser,
+      user: userInfo,
     };
   }
 
   // Login
   async login({ username, password }) {
-    const userExist = await User.findOne({ username });
+    const userExist = await User.findOne({ username});
 
     if (!userExist) {
       return { error: "User does not exist" };
@@ -38,45 +41,120 @@ class UserService {
     if (isCompared) {
       const token = await userExist.generateToken();
       userExist.image = `http://localhost:8000${userExist.image}`;
+
+      const userInfo = userExist.toObject();
+      delete userInfo.password;
+
       return {
         message: "Login successful",
         token: token,
-        userInfo: userExist,
+        user: userInfo,
       };
     }
   }
 
-  // update user
-  updateUser = async ({id, username, email, phone, name, image }) => {
-    try {
+  googleLogin = async ({ googleToken }) => {
+    const decodedData = jwt.decode(googleToken);
+    const { email, name, picture } = decodedData;
 
-      const userExist = await User.findById({_id: id});
+    const userExist = await User.findOne({ email, userType: "Google" }).select('-password');
+
+    if (!userExist) {
+      const createdUser = await User.create({
+        username: email,
+        email,
+        phone: "",
+        password: "",
+        name,
+        image: picture,
+        userType: "Google",
+      });
+      const userInfo = createdUser.toObject();
+      delete userInfo.password;
+      return {
+        message: "User created successfully",
+        token: await createdUser.generateToken(),
+        user: userInfo,
+      };
+    }
+
+    return {
+      message: "Login successful",
+      token: await userExist.generateToken(),
+      user: userExist,
+    };
+  };
+
+  facebookLogin = async ({ fbData }) => {
+    const { email, name, picture } = fbData;
+
+    const userExist = await User.findOne({ email, userType: "Facebook" }).select('-password');
+
+    if (!userExist) {
+      const createdUser = await User.create({
+        username: email,
+        email,
+        phone: "",
+        password: "",
+        name,
+        image: picture.data.url,
+        userType: "Facebook",
+      });
+      const userInfo = createdUser.toObject();
+      delete userInfo.password;
+      return {
+        message: "User created successfully",
+        token: await createdUser.generateToken(),
+        user: userInfo,
+      };
+    }
+
+    return {
+      message: "Login successful",
+      token: await userExist.generateToken(),
+      user: userExist,
+    };
+  };
+
+  // update user
+  updateUser = async ({ id, username, email, phone, name, image }) => {
+    try {
+      const userExist = await User.findById({ _id: id }).select('-password');
 
       //console.log("User Exit Check...", userExist);
 
       if (!userExist) {
         return { error: "User not found" };
       }
-  
+
       userExist.username = username || userExist.username;
       userExist.email = email || userExist.email;
       userExist.phone = phone || userExist.phone;
       userExist.name = name || userExist.name;
       userExist.image = image || userExist.image;
-  
+
       await userExist.save();
-  
-      return {
-        message: "User updated successfully",
-        user: {
-          _id: userExist._id,
-          username: userExist.username,
-          email: userExist.email,
-          phone: userExist.phone,
-          name: userExist.name,
-          image: `http://localhost:8000${userExist.image}`,
-        },
-      };
+
+      if(userExist.userType === "Google" || userExist.userType === "Facebook"){
+        return {
+          message: "User updated successfully",
+          user: userExist,
+        };
+      }
+      else{
+        return {
+          message: "User updated successfully",
+          user: {
+            _id: userExist._id,
+            username: userExist.username,
+            email: userExist.email,
+            phone: userExist.phone,
+            name: userExist.name,
+            image: `http://localhost:8000${userExist.image}`,
+          },
+        };
+      }
+
     } catch (error) {
       return { error: "Server error" };
     }

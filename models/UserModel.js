@@ -13,7 +13,7 @@ const userSchema = mongoose.Schema({
   },
   phone: {
     type: String,
-    require: true,
+    require: false,
   },
   name:{
     type: String,
@@ -21,7 +21,9 @@ const userSchema = mongoose.Schema({
   },
   password: {
     type: String,
-    require: true,
+    require: function() {
+      return this.userType !== 'Google' && this.userType !== 'Facebook';
+    },
   },
   image: {
     type: String,
@@ -31,15 +33,19 @@ const userSchema = mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  userType: {
+    type: String,
+    default: "Email",
+  },
 });
 
 userSchema.pre("save", async function (next) {
   const user = this;
 
-  if (!user.isModified("password")) {
+  if (user.userType === 'Google' || user.userType === 'Facebook' || !user.isModified("password")) {
     next();
   }
-
+else{
   try {
     const saltRound = await bcrypt.genSalt(10);
     const hash_pass = await bcrypt.hash(user.password, saltRound);
@@ -47,6 +53,8 @@ userSchema.pre("save", async function (next) {
   } catch (error) {
     next(error);
   }
+}
+  
 });
 
 // for comparing passwords
@@ -62,7 +70,8 @@ userSchema.methods.generateToken = async function () {
       {
         userId: this._id.toString(),
         email: this.email,
-        isAdmin: this.isAdmin
+        isAdmin: this.isAdmin,
+        userType: this.userType,
       },
       process.env.JWT_SECRET, {
         expiresIn: "1h"
